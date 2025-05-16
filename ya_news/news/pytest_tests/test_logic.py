@@ -2,7 +2,7 @@ import pytest
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 
-from news.forms import CommentForm, BAD_WORDS
+from news.forms import BAD_WORDS
 from news.models import Comment
 
 User = get_user_model()
@@ -19,7 +19,7 @@ def test_anonymous_user_cant_post_comment(client, news):
 
 @pytest.mark.django_db
 def test_authorized_user_can_post_comment(author_client, author, news):
-    """Проверяет возможность авторизованного пользователя оставлять комментарии."""
+    """Проверяет возможность авторизованного пользователя оставлять коммент."""
     url = reverse('news:detail', kwargs={'pk': news.pk})
     text = 'Текст комментария'
     author_client.post(url, data={'text': text})
@@ -39,7 +39,7 @@ def test_comment_with_bad_words_not_published(author_client, news):
     assert Comment.objects.count() == 0
     form = response.context['form']
     assert 'text' in form.errors
-    assert CommentForm.WARNING in form.errors['text']
+    assert 'Не ругайтесь!' in str(form.errors['text'])
 
 
 @pytest.mark.django_db
