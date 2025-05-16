@@ -10,6 +10,7 @@ User = get_user_model()
 
 @pytest.mark.django_db
 def test_anonymous_user_cant_post_comment(client, news):
+    """Проверяет, что анонимный пользователь не может оставлять комментарии."""
     url = reverse('news:detail', kwargs={'pk': news.pk})
     response = client.post(url, data={'text': 'Комментарий'})
     assert response.status_code == 302
@@ -18,6 +19,7 @@ def test_anonymous_user_cant_post_comment(client, news):
 
 @pytest.mark.django_db
 def test_authorized_user_can_post_comment(author_client, author, news):
+    """Проверяет возможность авторизованного пользователя оставлять комментарии."""
     url = reverse('news:detail', kwargs={'pk': news.pk})
     text = 'Текст комментария'
     author_client.post(url, data={'text': text})
@@ -30,6 +32,7 @@ def test_authorized_user_can_post_comment(author_client, author, news):
 
 @pytest.mark.django_db
 def test_comment_with_bad_words_not_published(author_client, news):
+    """Проверяет валидацию комментариев с запрещенными словами."""
     url = reverse('news:detail', kwargs={'pk': news.pk})
     bad_word = BAD_WORDS[0]
     response = author_client.post(url, data={'text': f'Текст с {bad_word}'})
@@ -41,6 +44,7 @@ def test_comment_with_bad_words_not_published(author_client, news):
 
 @pytest.mark.django_db
 def test_author_can_edit_comment(author_client, comment):
+    """Проверяет возможность автора редактировать свои комментарии."""
     url = reverse('news:edit', kwargs={'pk': comment.pk})
     new_text = 'Обновленный комментарий'
     response = author_client.post(url, data={'text': new_text})
@@ -51,6 +55,7 @@ def test_author_can_edit_comment(author_client, comment):
 
 @pytest.mark.django_db
 def test_author_can_delete_comment(author_client, comment):
+    """Проверяет возможность автора удалять свои комментарии."""
     url = reverse('news:delete', kwargs={'pk': comment.pk})
     response = author_client.post(url)
     assert response.status_code == 302
@@ -59,6 +64,7 @@ def test_author_can_delete_comment(author_client, comment):
 
 @pytest.mark.django_db
 def test_user_cant_edit_others_comments(user_client, comment):
+    """Проверяет запрет на редактирование чужих комментариев."""
     url = reverse('news:edit', kwargs={'pk': comment.pk})
     original_text = comment.text
     new_text = 'Обновленный комментарий'
@@ -70,6 +76,7 @@ def test_user_cant_edit_others_comments(user_client, comment):
 
 @pytest.mark.django_db
 def test_user_cant_delete_others_comments(user_client, comment):
+    """Проверяет запрет на удаление чужих комментариев."""
     url = reverse('news:delete', kwargs={'pk': comment.pk})
     response = user_client.post(url)
     assert response.status_code == 404

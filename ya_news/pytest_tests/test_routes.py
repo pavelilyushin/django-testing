@@ -10,6 +10,7 @@ User = get_user_model()
 
 @pytest.fixture
 def author_client(author):
+    """Создает и возвращает клиент с авторизованным автором комментария."""
     client = Client()
     client.force_login(author)
     return client
@@ -17,11 +18,13 @@ def author_client(author):
 
 @pytest.fixture
 def news():
+    """Создает и возвращает тестовую новость."""
     return News.objects.create(title='Тестовая новость', text='Текст новости')
 
 
 @pytest.fixture
 def comment(author, news):
+    """Создает и возвращает тестовый комментарий к новости."""
     return Comment.objects.create(
         news=news,
         author=author,
@@ -31,6 +34,7 @@ def comment(author, news):
 
 @pytest.mark.django_db
 def test_home_page_available_to_anonymous_user(client):
+    """Проверяет доступность главной страницы для анонимного пользователя."""
     url = reverse('news:home')
     response = client.get(url)
     assert response.status_code == 200
@@ -38,6 +42,7 @@ def test_home_page_available_to_anonymous_user(client):
 
 @pytest.mark.django_db
 def test_news_detail_available_to_anonymous_user(client, news):
+    """Проверяет доступность страницы деталей новости для анонимного пользователя."""
     url = reverse('news:detail', kwargs={'pk': news.pk})
     response = client.get(url)
     assert response.status_code == 200
@@ -45,6 +50,7 @@ def test_news_detail_available_to_anonymous_user(client, news):
 
 @pytest.mark.django_db
 def test_comment_edit_delete_pages_available_to_author(author_client, comment):
+    """Проверяет доступность страниц редактирования и удаления комментария для автора."""
     urls = [
         reverse('news:edit', kwargs={'pk': comment.pk}),
         reverse('news:delete', kwargs={'pk': comment.pk}),
@@ -56,6 +62,8 @@ def test_comment_edit_delete_pages_available_to_author(author_client, comment):
 
 @pytest.mark.django_db
 def test_anonymous_user_redirected_to_login(client, comment):
+    """Проверяет перенаправление анонимного пользователя на страницу входа при попытке 
+    редактирования или удаления комментария."""
     urls = [
         reverse('news:edit', kwargs={'pk': comment.pk}),
         reverse('news:delete', kwargs={'pk': comment.pk}),
@@ -69,6 +77,8 @@ def test_anonymous_user_redirected_to_login(client, comment):
 
 @pytest.mark.django_db
 def test_authenticated_user_cant_access_others_comments(user_client, comment):
+    """Проверяет, что аутентифицированный пользователь не может получить доступ 
+    к страницам редактирования и удаления чужих комментариев."""
     urls = [
         reverse('news:edit', kwargs={'pk': comment.pk}),
         reverse('news:delete', kwargs={'pk': comment.pk}),
@@ -80,6 +90,7 @@ def test_authenticated_user_cant_access_others_comments(user_client, comment):
 
 @pytest.mark.django_db
 def test_auth_pages_available_to_anonymous_user(client):
+    """Проверяет доступность страниц аутентификации для анонимных пользователей."""
     urls = [
         reverse('users:login'),
         reverse('users:logout'),
