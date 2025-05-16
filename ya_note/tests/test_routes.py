@@ -8,7 +8,7 @@ User = get_user_model()
 
 
 class TestRoutes(TestCase):
-    """Класс для тестирования доступности."""
+    """Класс для тестирования доступности страниц."""
 
     @classmethod
     def setUpTestData(cls):
@@ -31,7 +31,7 @@ class TestRoutes(TestCase):
         self.reader_client.force_login(self.reader)
 
     def test_home_page_available_to_anonymous(self):
-        """Главная страница доступна анониму."""
+        """Главная страница доступна анонимному пользователю."""
         url = reverse('notes:home')
         response = self.guest_client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -50,7 +50,7 @@ class TestRoutes(TestCase):
                 self.assertEqual(response.status_code, 200)
 
     def test_note_pages_available_only_to_author(self):
-        """Страницы заметки доступны автору."""
+        """Страницы заметки доступны только автору."""
         users_statuses = (
             (self.author_client, 200),
             (self.reader_client, 404),

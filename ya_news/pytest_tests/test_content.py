@@ -43,7 +43,8 @@ def comments(news, author):
         comment = Comment.objects.create(
             news=news,
             author=author,
-            text=f'Комментарий {index}')
+            text=f'Комментарий {index}'
+        )
         comment.created = now - timedelta(hours=index)
         comment.save()
 
@@ -76,7 +77,7 @@ def test_comments_order(client, news, comments):
     news = response.context['news']
     all_comments = news.comment_set.all()
     for i in range(len(all_comments) - 1):
-        assert all_comments[i].created <= all_comments[i+1].created
+        assert all_comments[i].created <= all_comments[i + 1].created
 
 
 @pytest.mark.django_db

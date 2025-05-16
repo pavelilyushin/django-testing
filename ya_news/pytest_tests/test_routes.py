@@ -19,7 +19,10 @@ def author_client(author):
 @pytest.fixture
 def news():
     """Создает и возвращает тестовую новость."""
-    return News.objects.create(title='Тестовая новость', text='Текст новости')
+    return News.objects.create(
+        title='Тестовая новость',
+        text='Текст новости'
+    )
 
 
 @pytest.fixture
@@ -62,8 +65,7 @@ def test_comment_edit_delete_pages_available_to_author(author_client, comment):
 
 @pytest.mark.django_db
 def test_anonymous_user_redirected_to_login(client, comment):
-    """Проверяет перенаправление анонимного пользователя на страницу входа при попытке 
-    редактирования или удаления комментария."""
+    """Проверяет перенаправление анонимного пользователя на страницу входа."""
     urls = [
         reverse('news:edit', kwargs={'pk': comment.pk}),
         reverse('news:delete', kwargs={'pk': comment.pk}),
@@ -78,7 +80,8 @@ def test_anonymous_user_redirected_to_login(client, comment):
 @pytest.mark.django_db
 def test_authenticated_user_cant_access_others_comments(user_client, comment):
     """Проверяет, что аутентифицированный пользователь не может получить доступ 
-    к страницам редактирования и удаления чужих комментариев."""
+    к страницам редактирования и удаления чужих комментариев.
+    """
     urls = [
         reverse('news:edit', kwargs={'pk': comment.pk}),
         reverse('news:delete', kwargs={'pk': comment.pk}),

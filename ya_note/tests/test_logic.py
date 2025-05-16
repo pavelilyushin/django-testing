@@ -49,7 +49,7 @@ class TestLogic(TestCase):
         self.assertEqual(new_note.author, self.author)
 
     def test_anonymous_user_cant_create_note(self):
-        """Аноним не может создать заметку."""
+        """Анонимный пользователь не может создать заметку."""
         url = reverse('notes:add')
         response = self.guest_client.post(url, data=self.form_data)
         login_url = reverse('users:login')
@@ -62,8 +62,10 @@ class TestLogic(TestCase):
         url = reverse('notes:add')
         self.form_data['slug'] = self.note.slug
         response = self.author_client.post(
-            url, data=self.form_data, follow=True
-            )
+            url,
+            data=self.form_data,
+            follow=True
+        )
         self.assertContains(response, self.note.slug + WARNING)
         self.assertEqual(Note.objects.count(), 1)
 
