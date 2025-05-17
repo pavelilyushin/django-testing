@@ -1,77 +1,43 @@
 import pytest
-from django.urls import reverse
+
+from http import HTTPStatus
 
 
 @pytest.mark.django_db
-def test_home_page_available_to_anonymous_user(client):
-    """Проверяет доступность главной страницы для анонимного пользователя."""
-    url = reverse('news:home')
+@pytest.mark.parametrize(
+    'url_name, client_fixture, expected_status',
+    [
+        ('home_url', 'client', HTTPStatus.OK),
+        ('detail_url', 'client', HTTPStatus.OK),
+        ('edit_url', 'author_client', HTTPStatus.OK),
+        ('delete_url', 'author_client', HTTPStatus.OK),
+        ('login_url', 'client', HTTPStatus.OK),
+        ('signup_url', 'client', HTTPStatus.OK),
+        ('logout_url', 'client', HTTPStatus.METHOD_NOT_ALLOWED),
+        ('edit_url', 'client', HTTPStatus.FOUND),
+        ('delete_url', 'client', HTTPStatus.FOUND),
+        ('edit_url', 'user_client', HTTPStatus.NOT_FOUND),
+        ('delete_url', 'user_client', HTTPStatus.NOT_FOUND),
+    ]
+)
+def test_pages_availability(
+    request, url_name, client_fixture, expected_status
+):
+    """Проверяет доступность страниц для разных пользователей."""
+    client = request.getfixturevalue(client_fixture)
+    url = request.getfixturevalue(url_name)
     response = client.get(url)
-    assert response.status_code == 200
+    assert response.status_code == expected_status
 
 
 @pytest.mark.django_db
-def test_news_detail_available_to_anonymous_user(client, news):
-    """Проверяет доступность страницы деталей новости для анонимов."""
-    url = reverse('news:detail', kwargs={'pk': news.pk})
+@pytest.mark.parametrize(
+    'url_name',
+    ['edit_url', 'delete_url']
+)
+def test_redirects(client, url_name, login_url, request):
+    """Проверяет редиректы для анонимного пользователя."""
+    url = request.getfixturevalue(url_name)
     response = client.get(url)
-    assert response.status_code == 200
-
-
-@pytest.mark.django_db
-def test_comment_edit_delete_pages_available_to_author(author_client, comment):
-    """Проверяет доступность страниц редактирования и удаления комментария."""
-    urls = [
-        reverse('news:edit', kwargs={'pk': comment.pk}),
-        reverse('news:delete', kwargs={'pk': comment.pk}),
-    ]
-    for url in urls:
-        response = author_client.get(url)
-        assert response.status_code == 200
-
-
-@pytest.mark.django_db
-def test_anonymous_user_redirected_to_login(client, comment):
-    """Проверяет перенаправление анонимного пользователя на страницу входа."""
-    urls = [
-        reverse('news:edit', kwargs={'pk': comment.pk}),
-        reverse('news:delete', kwargs={'pk': comment.pk}),
-    ]
-    login_url = reverse('users:login')
-    for url in urls:
-        response = client.get(url)
-        assert response.status_code == 302
-        assert login_url in response.url
-
-
-@pytest.mark.django_db
-def test_authenticated_user_cant_access_others_comments(user_client, comment):
-    """Проверяет, что у пользователь нет доступа к чужим комментам."""
-    urls = [
-        reverse('news:edit', kwargs={'pk': comment.pk}),
-        reverse('news:delete', kwargs={'pk': comment.pk}),
-    ]
-    for url in urls:
-        response = user_client.get(url)
-        assert response.status_code == 404
-
-
-@pytest.mark.django_db
-def test_auth_pages_available_to_anonymous_user(client):
-    """Проверяет доступность страниц аутентификации для анонимов."""
-    urls = [
-        reverse('users:login'),
-        reverse('users:signup'),
-    ]
-    for url in urls:
-        response = client.get(url)
-        assert response.status_code == 200
-
-    logout_url = reverse('users:logout')
-
-    response = client.get(logout_url)
-    assert response.status_code in [200, 405]
-
-    if response.status_code != 405:
-        response = client.post(logout_url)
-        assert response.status_code == 302
+    assert response.status_code == HTTPStatus.FOUND
+    assert login_url in response.url

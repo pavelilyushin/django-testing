@@ -1,83 +1,98 @@
 import pytest
-from django.urls import reverse
-from django.contrib.auth import get_user_model
 
 from news.forms import BAD_WORDS
 from news.models import Comment
 
-User = get_user_model()
+
+@pytest.mark.django_db
+def test_anonymous_user_cant_post_comment(client, news, detail_url):
+    """Проверяет запрет на создание комментариев анонимным пользователем."""
+    comments_count_before = Comment.objects.count()
+    client.post(detail_url, data={'text': 'Комментарий'})
+    comments_count_after = Comment.objects.count()
+    assert comments_count_after == comments_count_before
 
 
 @pytest.mark.django_db
-def test_anonymous_user_cant_post_comment(client, news):
-    """Проверяет, что анонимный пользователь не может оставлять комментарии."""
-    url = reverse('news:detail', kwargs={'pk': news.pk})
-    response = client.post(url, data={'text': 'Комментарий'})
-    assert response.status_code == 302
-    assert Comment.objects.count() == 0
-
-
-@pytest.mark.django_db
-def test_authorized_user_can_post_comment(author_client, author, news):
-    """Проверяет возможность авторизованного пользователя оставлять коммент."""
-    url = reverse('news:detail', kwargs={'pk': news.pk})
+def test_authorized_user_can_post_comment(author_client,
+                                          author, news, detail_url):
+    """Проверяет возможность создания комментария авторизованным."""
+    comments_count_before = Comment.objects.count()
     text = 'Текст комментария'
-    author_client.post(url, data={'text': text})
-    assert Comment.objects.count() == 1
-    comment = Comment.objects.first()
+    author_client.post(detail_url, data={'text': text})
+    comments_count_after = Comment.objects.count()
+    assert comments_count_after == comments_count_before + 1
+    comment = Comment.objects.latest('id')
     assert comment.text == text
     assert comment.news == news
     assert comment.author == author
 
 
 @pytest.mark.django_db
-def test_comment_with_bad_words_not_published(author_client, news):
+def test_comment_with_bad_words_not_published(author_client, news, detail_url):
     """Проверяет валидацию комментариев с запрещенными словами."""
-    url = reverse('news:detail', kwargs={'pk': news.pk})
+    comments_count_before = Comment.objects.count()
     bad_word = BAD_WORDS[0]
-    response = author_client.post(url, data={'text': f'Текст с {bad_word}'})
-    assert Comment.objects.count() == 0
+    response = author_client.post(
+        detail_url,
+        data={'text': f'Текст с {bad_word}'}
+    )
+    comments_count_after = Comment.objects.count()
+    assert comments_count_after == comments_count_before
     form = response.context['form']
     assert 'text' in form.errors
     assert 'Не ругайтесь!' in str(form.errors['text'])
 
 
 @pytest.mark.django_db
-def test_author_can_edit_comment(author_client, comment):
+def test_author_can_edit_comment(author_client, comment, edit_url):
     """Проверяет возможность автора редактировать свои комментарии."""
-    url = reverse('news:edit', kwargs={'pk': comment.pk})
+    comments_count_before = Comment.objects.count()
     new_text = 'Обновленный комментарий'
-    response = author_client.post(url, data={'text': new_text})
-    assert response.status_code == 302
-    comment.refresh_from_db()
-    assert comment.text == new_text
+    author_client.post(edit_url, data={'text': new_text})
+    comments_count_after = Comment.objects.count()
+    assert comments_count_after == comments_count_before
+    updated_comment = Comment.objects.get(id=comment.id)
+    assert updated_comment.text == new_text
+    assert updated_comment.news == comment.news
+    assert updated_comment.author == comment.author
+    assert updated_comment.created == comment.created
 
 
 @pytest.mark.django_db
-def test_author_can_delete_comment(author_client, comment):
+def test_author_can_delete_comment(author_client, comment, delete_url):
     """Проверяет возможность автора удалять свои комментарии."""
-    url = reverse('news:delete', kwargs={'pk': comment.pk})
-    response = author_client.post(url)
-    assert response.status_code == 302
-    assert Comment.objects.count() == 0
+    comments_count_before = Comment.objects.count()
+    author_client.post(delete_url)
+    comments_count_after = Comment.objects.count()
+    assert comments_count_after == comments_count_before - 1
+    assert not Comment.objects.filter(id=comment.id).exists()
 
 
 @pytest.mark.django_db
-def test_user_cant_edit_others_comments(user_client, comment):
+def test_user_cant_edit_others_comments(user_client, comment, edit_url):
     """Проверяет запрет на редактирование чужих комментариев."""
-    url = reverse('news:edit', kwargs={'pk': comment.pk})
+    comments_count_before = Comment.objects.count()
     original_text = comment.text
+    comment_id = comment.id
     new_text = 'Обновленный комментарий'
-    response = user_client.post(url, data={'text': new_text})
+    response = user_client.post(edit_url, data={'text': new_text})
+    comments_count_after = Comment.objects.count()
+    assert comments_count_after == comments_count_before
     assert response.status_code == 404
-    comment.refresh_from_db()
-    assert comment.text == original_text
+    reloaded_comment = Comment.objects.get(id=comment_id)
+    assert reloaded_comment.text == original_text
+    assert reloaded_comment.news == comment.news
+    assert reloaded_comment.author == comment.author
+    assert reloaded_comment.created == comment.created
 
 
 @pytest.mark.django_db
-def test_user_cant_delete_others_comments(user_client, comment):
+def test_user_cant_delete_others_comments(user_client, comment, delete_url):
     """Проверяет запрет на удаление чужих комментариев."""
-    url = reverse('news:delete', kwargs={'pk': comment.pk})
-    response = user_client.post(url)
+    comments_count_before = Comment.objects.count()
+    response = user_client.post(delete_url)
+    comments_count_after = Comment.objects.count()
+    assert comments_count_after == comments_count_before
     assert response.status_code == 404
-    assert Comment.objects.count() == 1
+    assert Comment.objects.filter(id=comment.id).exists()
