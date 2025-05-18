@@ -1,8 +1,8 @@
 import pytest
 
-from news.forms import CommentForm
+from news.constants import NEWS_ON_HOME_PAGE
 
-from .conftest import NEWS_ON_HOME_PAGE
+from news.forms import CommentForm
 
 
 @pytest.mark.django_db

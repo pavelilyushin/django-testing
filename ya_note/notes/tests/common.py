@@ -1,5 +1,6 @@
 from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
+from django.urls import reverse
 
 from notes.models import Note
 
@@ -25,6 +26,12 @@ class NotesTestCase(TestCase):
             'text': 'Новый текст',
             'slug': 'new-slug'
         }
+        cls.add_url = reverse('notes:add')
+        cls.edit_url = reverse('notes:edit', args=(cls.note.slug,))
+        cls.delete_url = reverse('notes:delete', args=(cls.note.slug,))
+        cls.list_url = reverse('notes:list')
+        cls.success_url = reverse('notes:success')
+        cls.login_url = reverse('users:login')
 
     def setUp(self):
         """Настройка тестовых клиентов."""

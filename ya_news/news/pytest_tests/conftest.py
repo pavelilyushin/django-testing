@@ -7,12 +7,11 @@ from django.utils import timezone
 from django.urls import reverse
 
 from news.models import News, Comment
+from news.constants import NEWS_ON_HOME_PAGE
 
 User = get_user_model()
 
-NEWS_COUNT = 15
 COMMENTS_COUNT = 5
-NEWS_ON_HOME_PAGE = 10
 
 
 @pytest.fixture
@@ -53,13 +52,12 @@ def news():
 def news_list():
     """Фикстура создает тестовые новости с разными датами публикации."""
     today = timezone.now().date()
-    News.objects.all().delete()
     News.objects.bulk_create(
         News(
             title=f'Новость {index}',
             text='Текст новости',
             date=today - timedelta(days=index))
-        for index in range(NEWS_COUNT)
+        for index in range(NEWS_ON_HOME_PAGE + 1)
     )
 
 
@@ -77,7 +75,6 @@ def comment(author, news):
 def comments(news, author):
     """Фикстура создает тестовые комментарии с разным временем создания."""
     now = timezone.now()
-    Comment.objects.all().delete()
     for index in range(COMMENTS_COUNT):
         comment = Comment.objects.create(
             news=news,

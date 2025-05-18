@@ -17,12 +17,14 @@ def test_anonymous_user_cant_post_comment(client, news, detail_url):
 def test_authorized_user_can_post_comment(author_client,
                                           author, news, detail_url):
     """Проверяет возможность создания комментария авторизованным."""
+    comment_ids = set(Comment.objects.values_list('id', flat=True))
     comments_count_before = Comment.objects.count()
     text = 'Текст комментария'
     author_client.post(detail_url, data={'text': text})
+    new_comment = Comment.objects.exclude(id__in=comment_ids)
     comments_count_after = Comment.objects.count()
     assert comments_count_after == comments_count_before + 1
-    comment = Comment.objects.latest('id')
+    comment = new_comment.first()
     assert comment.text == text
     assert comment.news == news
     assert comment.author == author
@@ -90,9 +92,13 @@ def test_user_cant_edit_others_comments(user_client, comment, edit_url):
 @pytest.mark.django_db
 def test_user_cant_delete_others_comments(user_client, comment, delete_url):
     """Проверяет запрет на удаление чужих комментариев."""
+    comment_before = Comment.objects.get(id=comment.id)
     comments_count_before = Comment.objects.count()
     response = user_client.post(delete_url)
+    comment_after = Comment.objects.get(id=comment.id)
     comments_count_after = Comment.objects.count()
     assert comments_count_after == comments_count_before
     assert response.status_code == 404
-    assert Comment.objects.filter(id=comment.id).exists()
+    assert Comment.objects.filter(id=comment.id)
+    assert comment_after.text == comment_before.text
+    assert comment_after.author == comment_before.author
