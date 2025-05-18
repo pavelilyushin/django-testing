@@ -1,7 +1,6 @@
 import pytest
 
 from news.constants import NEWS_ON_HOME_PAGE
-
 from news.forms import CommentForm
 
 
